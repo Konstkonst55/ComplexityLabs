@@ -9,6 +9,11 @@ public static class FormatHelper
         return string.Join(", ", values.Select(value => value.ToString("0.###")));
     }
 
+    public static string Format(IReadOnlyList<Complex> values)
+    {
+        return string.Join(", ", values.Select(Format));
+    }
+
     public static string Format(Complex value)
     {
         var real = Math.Abs(value.Real) < 1e-10 ? 0 : value.Real;

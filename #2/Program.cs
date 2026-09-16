@@ -18,19 +18,36 @@ Console.WriteLine();
 
 foreach (var transform in transforms)
 {
-    var result = transform.Transform(source, TransformDirection.Forward);
+    var forwardResult = transform.Transform(source);
 
     Console.WriteLine(transform.Name);
     Console.WriteLine($"Input length: {source.Length}");
-    Console.WriteLine($"Complex coefficients:");
+    Console.WriteLine();
+    Console.WriteLine("Direct DFT:");
 
-    foreach (var step in result.Steps)
+    foreach (var step in forwardResult.Steps)
     {
         Console.WriteLine(step);
     }
 
-    Console.WriteLine($"Total summands: {result.SummandCount}");
-    Console.WriteLine($"C per summand: {result.CostPerSummand}");
-    Console.WriteLine($"Total operations: {result.OperationCount}");
+    Console.WriteLine($"Total summands: {forwardResult.SummandCount}");
+    Console.WriteLine($"C per summand: {forwardResult.CostPerSummand}");
+    Console.WriteLine($"Total operations: {forwardResult.OperationCount}");
+    Console.WriteLine();
+
+    var inverseResult = transform.InverseTransform(forwardResult.Coefficients);
+
+    Console.WriteLine("Inverse DFT:");
+
+    foreach (var step in inverseResult.Steps)
+    {
+        Console.WriteLine(step);
+    }
+
+    Console.WriteLine($"Total summands: {inverseResult.SummandCount}");
+    Console.WriteLine($"C per summand: {inverseResult.CostPerSummand}");
+    Console.WriteLine($"Total operations: {inverseResult.OperationCount}");
+    Console.WriteLine();
+    Console.WriteLine($"Restored: {FormatHelper.Format(inverseResult.Values)}");
     Console.WriteLine();
 }
