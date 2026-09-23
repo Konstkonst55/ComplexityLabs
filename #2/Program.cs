@@ -1,7 +1,7 @@
 using _2.Fourier;
 
 var random = new Random();
-var source = new double[8];
+var source = new double[16];
 
 for (var i = 0; i < source.Length; i++)
 {
@@ -10,7 +10,7 @@ for (var i = 0; i < source.Length; i++)
 
 var transforms = new IDiscreteFourierTransform[]
 {
-    new DirectDiscreteFourierTransform()
+    new SemiFastDiscreteFourierTransform()
 };
 
 Console.WriteLine($"Source: {FormatHelper.Format(source)}");
