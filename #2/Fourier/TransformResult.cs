@@ -8,13 +8,14 @@ public sealed class TransformResult
         Complex[] coefficients,
         IReadOnlyList<string> steps,
         long summandCount,
-        int costPerSummand)
+        int costPerSummand,
+        long operationCount)
     {
         Coefficients = coefficients;
         Steps = steps;
         SummandCount = summandCount;
         CostPerSummand = costPerSummand;
-        OperationCount = summandCount * costPerSummand;
+        OperationCount = operationCount;
     }
 
     public Complex[] Coefficients { get; }

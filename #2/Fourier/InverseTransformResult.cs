@@ -8,13 +8,14 @@ public sealed class InverseTransformResult
         Complex[] values,
         IReadOnlyList<string> steps,
         long summandCount,
-        int costPerSummand)
+        int costPerSummand,
+        long operationCount)
     {
         Values = values;
         Steps = steps;
         SummandCount = summandCount;
         CostPerSummand = costPerSummand;
-        OperationCount = summandCount * costPerSummand;
+        OperationCount = operationCount;
     }
 
     public Complex[] Values { get; }

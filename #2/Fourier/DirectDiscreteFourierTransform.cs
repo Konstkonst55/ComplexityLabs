@@ -15,6 +15,8 @@ public sealed class DirectDiscreteFourierTransform : IDiscreteFourierTransform
         var n = source.Count;
         var coefficients = new Complex[n];
         var steps = new List<string>();
+        long summandCount = 0;
+        long operationCount = 0;
 
         for (var k = 0; k < n; k++)
         {
@@ -25,19 +27,20 @@ public sealed class DirectDiscreteFourierTransform : IDiscreteFourierTransform
                 var angle = -2.0 * Math.PI * k * j / n;
                 var factor = Complex.FromPolarCoordinates(1.0, angle);
                 sum += source[j] * factor;
+                summandCount++;
+                operationCount += CostPerSummand;
             }
 
             coefficients[k] = sum / n;
             steps.Add($"A[{k}] = {FormatHelper.Format(coefficients[k])}");
         }
 
-        var summandCount = (long)n * n;
-
         return new TransformResult(
             coefficients,
             steps,
             summandCount,
-            CostPerSummand);
+            CostPerSummand,
+            operationCount);
     }
 
     public InverseTransformResult InverseTransform(
@@ -48,6 +51,8 @@ public sealed class DirectDiscreteFourierTransform : IDiscreteFourierTransform
         var n = coefficients.Count;
         var values = new Complex[n];
         var steps = new List<string>();
+        long summandCount = 0;
+        long operationCount = 0;
 
         for (var j = 0; j < n; j++)
         {
@@ -58,18 +63,19 @@ public sealed class DirectDiscreteFourierTransform : IDiscreteFourierTransform
                 var angle = 2.0 * Math.PI * k * j / n;
                 var factor = Complex.FromPolarCoordinates(1.0, angle);
                 sum += coefficients[k] * factor;
+                summandCount++;
+                operationCount += CostPerSummand;
             }
 
             values[j] = sum;
             steps.Add($"x[{j}] = {FormatHelper.Format(values[j])}");
         }
 
-        var summandCount = (long)n * n;
-
         return new InverseTransformResult(
             values,
             steps,
             summandCount,
-            CostPerSummand);
+            CostPerSummand,
+            operationCount);
     }
 }
