@@ -8,9 +8,10 @@ public sealed class SemiFastDiscreteFourierTransform : IDiscreteFourierTransform
 
     public string Name => "Semi-fast discrete Fourier transform O(n^3/2)";
 
-    public TransformResult Transform(IReadOnlyList<double> source)
+    public TransformResult Transform(IReadOnlyList<double> source, double pi = Math.PI)
     {
         ArgumentNullException.ThrowIfNull(source);
+        ValidatePi(pi);
 
         var n = source.Count;
         var size = GetSquareRootSize(n);
@@ -29,7 +30,7 @@ public sealed class SemiFastDiscreteFourierTransform : IDiscreteFourierTransform
                 for (var n1 = 0; n1 < size; n1++)
                 {
                     var sourceIndex = n1 * size + n2;
-                    var angle = -2.0 * Math.PI * k1 * n1 / size;
+                    var angle = -2.0 * pi * k1 * n1 / size;
                     var factor = Complex.FromPolarCoordinates(1.0, angle);
                     sum += source[sourceIndex] * factor;
                     summandCount++;
@@ -49,9 +50,9 @@ public sealed class SemiFastDiscreteFourierTransform : IDiscreteFourierTransform
                 for (var n2 = 0; n2 < size; n2++)
                 {
                     var intermediateIndex = k1 * size + n2;
-                    var angle = -2.0 * Math.PI * k1 * n2 / n;
+                    var angle = -2.0 * pi * k1 * n2 / n;
                     var twiddle = Complex.FromPolarCoordinates(1.0, angle);
-                    var secondFactorAngle = -2.0 * Math.PI * k2 * n2 / size;
+                    var secondFactorAngle = -2.0 * pi * k2 * n2 / size;
                     var secondFactor = Complex.FromPolarCoordinates(1.0, secondFactorAngle);
                     sum += intermediate[intermediateIndex] * twiddle * secondFactor;
                     summandCount++;
@@ -73,9 +74,11 @@ public sealed class SemiFastDiscreteFourierTransform : IDiscreteFourierTransform
     }
 
     public InverseTransformResult InverseTransform(
-        IReadOnlyList<Complex> coefficients)
+        IReadOnlyList<Complex> coefficients,
+        double pi = Math.PI)
     {
         ArgumentNullException.ThrowIfNull(coefficients);
+        ValidatePi(pi);
 
         var n = coefficients.Count;
         var size = GetSquareRootSize(n);
@@ -94,9 +97,9 @@ public sealed class SemiFastDiscreteFourierTransform : IDiscreteFourierTransform
                 for (var k2 = 0; k2 < size; k2++)
                 {
                     var coefficientIndex = k1 + size * k2;
-                    var angle = 2.0 * Math.PI * k1 * n2 / n;
+                    var angle = 2.0 * pi * k1 * n2 / n;
                     var twiddle = Complex.FromPolarCoordinates(1.0, angle);
-                    var secondFactorAngle = 2.0 * Math.PI * k2 * n2 / size;
+                    var secondFactorAngle = 2.0 * pi * k2 * n2 / size;
                     var secondFactor = Complex.FromPolarCoordinates(1.0, secondFactorAngle);
                     sum += coefficients[coefficientIndex] * twiddle * secondFactor;
                     summandCount++;
@@ -116,7 +119,7 @@ public sealed class SemiFastDiscreteFourierTransform : IDiscreteFourierTransform
                 for (var k1 = 0; k1 < size; k1++)
                 {
                     var intermediateIndex = k1 * size + n2;
-                    var angle = 2.0 * Math.PI * k1 * n1 / size;
+                    var angle = 2.0 * pi * k1 * n1 / size;
                     var factor = Complex.FromPolarCoordinates(1.0, angle);
                     sum += intermediate[intermediateIndex] * factor;
                     summandCount++;
@@ -154,5 +157,13 @@ public sealed class SemiFastDiscreteFourierTransform : IDiscreteFourierTransform
         }
 
         return size;
+    }
+
+    private static void ValidatePi(double pi)
+    {
+        if (!double.IsFinite(pi) || pi == 0)
+        {
+            throw new ArgumentException("Pi must be a finite non-zero value.", nameof(pi));
+        }
     }
 }

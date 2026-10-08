@@ -21,7 +21,8 @@ public abstract class FourierConvolutionAlgorithm : IConvolutionAlgorithm
 
     public ConvolutionResult Convolve(
         IReadOnlyList<double> first,
-        IReadOnlyList<double> second)
+        IReadOnlyList<double> second,
+        double pi = Math.PI)
     {
         ArgumentNullException.ThrowIfNull(first);
         ArgumentNullException.ThrowIfNull(second);
@@ -52,8 +53,8 @@ public abstract class FourierConvolutionAlgorithm : IConvolutionAlgorithm
             paddedSecond[i] = second[i];
         }
 
-        var firstTransform = transform.Transform(paddedFirst);
-        var secondTransform = transform.Transform(paddedSecond);
+        var firstTransform = transform.Transform(paddedFirst, pi);
+        var secondTransform = transform.Transform(paddedSecond, pi);
         var products = new Complex[transformLength];
         var steps = new List<string>();
 
@@ -64,19 +65,22 @@ public abstract class FourierConvolutionAlgorithm : IConvolutionAlgorithm
                 * transformLength;
         }
 
-        steps.Add($"Transform length: {transformLength}");
-        steps.Add("F(a):");
-        steps.AddRange(firstTransform.Steps);
-        steps.Add("F(b):");
-        steps.AddRange(secondTransform.Steps);
-        steps.Add($"{transformLength} * F(a) * F(b):");
-
-        for (var i = 0; i < products.Length; i++)
+        if (transformLength <= 32)
         {
-            steps.Add($"C[{i}] = {FormatHelper.Format(products[i])}");
+            steps.Add($"Transform length: {transformLength}");
+            steps.Add("F(a):");
+            steps.AddRange(firstTransform.Steps);
+            steps.Add("F(b):");
+            steps.AddRange(secondTransform.Steps);
+            steps.Add($"{transformLength} * F(a) * F(b):");
+
+            for (var i = 0; i < products.Length; i++)
+            {
+                steps.Add($"C[{i}] = {FormatHelper.Format(products[i])}");
+            }
         }
 
-        var inverseResult = transform.InverseTransform(products);
+        var inverseResult = transform.InverseTransform(products, pi);
         var values = new double[requiredLength];
 
         for (var i = 0; i < requiredLength; i++)
@@ -84,10 +88,13 @@ public abstract class FourierConvolutionAlgorithm : IConvolutionAlgorithm
             values[i] = NormalizeValue(inverseResult.Values[i].Real);
         }
 
-        steps.Add("F^-1(C):");
-        for (var i = 0; i < requiredLength; i++)
+        if (transformLength <= 32)
         {
-            steps.Add($"c[{i}] = {FormatValue(values[i])}");
+            steps.Add("F⁻¹(C):");
+            for (var i = 0; i < requiredLength; i++)
+            {
+                steps.Add($"c[{i}] = {FormatValue(values[i])}");
+            }
         }
 
         var transformOperations =

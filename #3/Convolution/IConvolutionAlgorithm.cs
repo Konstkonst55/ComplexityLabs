@@ -6,5 +6,6 @@ public interface IConvolutionAlgorithm
 
     ConvolutionResult Convolve(
         IReadOnlyList<double> first,
-        IReadOnlyList<double> second);
+        IReadOnlyList<double> second,
+        double pi = Math.PI);
 }

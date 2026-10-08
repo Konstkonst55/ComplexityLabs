@@ -6,10 +6,12 @@ public sealed class SimpleConvolution : IConvolutionAlgorithm
 
     public ConvolutionResult Convolve(
         IReadOnlyList<double> first,
-        IReadOnlyList<double> second)
+        IReadOnlyList<double> second,
+        double pi = Math.PI)
     {
         ArgumentNullException.ThrowIfNull(first);
         ArgumentNullException.ThrowIfNull(second);
+        ValidatePi(pi);
 
         if (first.Count == 0 || second.Count == 0)
         {
@@ -44,7 +46,10 @@ public sealed class SimpleConvolution : IConvolutionAlgorithm
             }
 
             result[k] = sum;
-            steps.Add($"c[{k}] = {string.Join(" + ", terms)} = {FormatValue(sum)}");
+            if (result.Length <= 32)
+            {
+                steps.Add($"c[{k}] = {string.Join(" + ", terms)} = {FormatValue(sum)}");
+            }
         }
 
         return new ConvolutionResult(
@@ -54,6 +59,14 @@ public sealed class SimpleConvolution : IConvolutionAlgorithm
             multiplications + additions,
             null,
             steps);
+    }
+
+    private static void ValidatePi(double pi)
+    {
+        if (!double.IsFinite(pi) || pi == 0)
+        {
+            throw new ArgumentException("Pi must be a finite non-zero value.", nameof(pi));
+        }
     }
 
     private static string FormatValue(double value)
