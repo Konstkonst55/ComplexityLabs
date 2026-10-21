@@ -4,115 +4,157 @@ namespace _4.Algorithms;
 
 public sealed class FastMultiplication
 {
-    private readonly Dictionary<int, long> _multiplicationsWithoutOverflow = new();
-    private readonly Dictionary<int, long> _multiplicationsWithOverflow = new();
-    private readonly Dictionary<int, long> _additionsWithoutOverflow = new();
-    private readonly Dictionary<int, long> _additionsWithOverflow = new();
-
-    public FastMultiplicationResult Multiply(string first, string second)
+    public FastMultiplicationResult Multiply(string first, string second, bool captureTrace = true)
     {
-        Validate(first);
-        Validate(second);
-        Reset();
+        Validate(first, nameof(first));
+        Validate(second, nameof(second));
 
         var x = BigInteger.Parse(first);
         var y = BigInteger.Parse(second);
-        var width = Math.Max(GetBitLength(x), GetBitLength(y));
-        width = Math.Max(1, NextPowerOfTwo(width));
+        var digits = NextPowerOfTwo(Math.Max(first.Length, second.Length));
+        var context = new CalculationContext(captureTrace);
+        var result = MultiplyRecursive(x, y, digits, string.Empty, 0, context);
 
-        var result = MultiplyRecursive(x, y, width);
         return new FastMultiplicationResult(
             result.ToString(),
-            new Dictionary<int, long>(_multiplicationsWithoutOverflow),
-            new Dictionary<int, long>(_multiplicationsWithOverflow),
-            new Dictionary<int, long>(_additionsWithoutOverflow),
-            new Dictionary<int, long>(_additionsWithOverflow));
+            digits,
+            context.Trace,
+            context.Statistics);
     }
 
-    private BigInteger MultiplyRecursive(BigInteger x, BigInteger y, int n)
+    private static BigInteger MultiplyRecursive(
+        BigInteger x,
+        BigInteger y,
+        int digits,
+        string label,
+        int indent,
+        CalculationContext context)
     {
-        if (n == 1)
+        if (digits <= 1)
         {
-            Add(_multiplicationsWithoutOverflow, 1, 1);
-            return x * y;
+            var product = x * y;
+            Add(context.Statistics.MultiplicationsWithoutOverflow, 1, 1);
+            AddTrace(context, indent, label.Length == 0
+                ? $"{x} * {y} = {product} (одноразрядное умножение без переполнения)"
+                : $"{label} = {x} * {y} = {product} (одноразрядное умножение без переполнения)");
+            return product;
         }
 
-        var k = n / 2;
-        var mask = (BigInteger.One << k) - 1;
-        var a = x >> k;
-        var b = x & mask;
-        var c = y >> k;
-        var d = y & mask;
-
-        var v = MultiplyRecursive(a, c, k);
-        var w = MultiplyRecursive(b, d, k);
-
+        var halfDigits = digits / 2;
+        var power = BigInteger.Pow(10, halfDigits);
+        var powerSquared = power * power;
+        var a = x / power;
+        var b = x % power;
+        var c = y / power;
+        var d = y % power;
         var sumA = a + b;
         var sumC = c + d;
-        var overflow = sumA >= (BigInteger.One << k) || sumC >= (BigInteger.One << k);
+        var overflowA = sumA >= power;
+        var overflowC = sumC >= power;
+        var overflowCount = (overflowA ? 1 : 0) + (overflowC ? 1 : 0);
+
+        Add(context.Statistics.AdditionsWithoutOverflow, digits, 6);
+
+        if (digits >= 4)
+        {
+            Add(context.Statistics.AdditionsWithOverflow, digits * 2, overflowCount);
+        }
+        else if (digits == 2)
+        {
+            Add(context.Statistics.AdditionsWithOverflow, 4, overflowCount);
+            Add(context.Statistics.AdditionsWithOverflow, 2, overflowCount * 2L);
+        }
+
+        if (label.Length > 0)
+        {
+            AddTrace(context, indent, $"Декомпозиция {digits}-разрядных чисел: {x} * {y} (k = {halfDigits})");
+        }
+
+        AddTrace(context, indent, $"x = {a} * 10^{halfDigits} + {b}, y = {c} * 10^{halfDigits} + {d}");
+
+        var groupNumber = label.Length == 0 ? 0 : context.NextGroupNumber++;
+        var uLabel = groupNumber == 0 ? "U" : $"U{groupNumber}";
+        var vLabel = groupNumber == 0 ? "V" : $"V{groupNumber}";
+        var wLabel = groupNumber == 0 ? "W" : $"W{groupNumber}";
 
         BigInteger u;
-        if (!overflow)
+        if (overflowCount > 0)
         {
-            u = MultiplyRecursive(sumA, sumC, k);
+            Add(context.Statistics.MultiplicationsWithOverflow, halfDigits, 1);
+            var countText = overflowCount == 1 ? "одним переполнением" : "двумя переполнениями";
+            AddTrace(context, indent, $"{uLabel} = ({a} + {b}) * ({c} + {d}) = {sumA} * {sumC} ({halfDigits}-разрядное умножение с {countText})");
+            u = MultiplyOverflowProduct(sumA, sumC, halfDigits, uLabel, indent + 1, context);
         }
         else
         {
-            Add(_multiplicationsWithOverflow, k, 1);
-            var a2 = sumA & mask;
-            var b2 = sumC & mask;
-            u = a2 * b2;
-            var highA = sumA >> k;
-            var highB = sumC >> k;
-
-            if (highA != 0 && highB != 0)
-            {
-                Add(_additionsWithOverflow, k, 1);
-            }
-            else if (highA != 0 || highB != 0)
-            {
-                Add(_additionsWithOverflow, k, 1);
-            }
-
-            u += ((highA * b2) + (highB * a2)) << k;
-            u += (highA * highB) << (2 * k);
+            AddTrace(context, indent, $"{uLabel} = ({a} + {b}) * ({c} + {d}) = {sumA} * {sumC} ({halfDigits}-разрядное умножение без переполнения)");
+            u = MultiplyRecursive(sumA, sumC, halfDigits, uLabel, indent + 1, context);
         }
 
-        Add(_additionsWithoutOverflow, n, 4);
+        AddTrace(context, indent, $"{vLabel} = {a} * {c} ({halfDigits}-разрядное умножение без переполнения)");
+        var v = MultiplyRecursive(a, c, halfDigits, vLabel, indent + 1, context);
+
+        AddTrace(context, indent, $"{wLabel} = {b} * {d} ({halfDigits}-разрядное умножение без переполнения)");
+        var w = MultiplyRecursive(b, d, halfDigits, wLabel, indent + 1, context);
+
         var middle = u - v - w;
-        return (v << (2 * k)) + (middle << k) + w;
+        var result = v * powerSquared + middle * power + w;
+        var displayLabel = label.Length == 0 ? $"{x} * {y}" : label;
+        AddTrace(context, indent, $"{displayLabel} = {v} * 10^{2 * halfDigits} + ({u} - {v} - {w}) * 10^{halfDigits} + {w} = {result}");
+        return result;
     }
 
-    private void Reset()
+    private static BigInteger MultiplyOverflowProduct(
+        BigInteger first,
+        BigInteger second,
+        int digits,
+        string label,
+        int indent,
+        CalculationContext context)
     {
-        _multiplicationsWithoutOverflow.Clear();
-        _multiplicationsWithOverflow.Clear();
-        _additionsWithoutOverflow.Clear();
-        _additionsWithOverflow.Clear();
-    }
+        var power = BigInteger.Pow(10, digits);
+        var powerSquared = power * power;
+        var highA = first / power;
+        var lowA = first % power;
+        var highB = second / power;
+        var lowB = second % power;
 
-    private static void Add(Dictionary<int, long> target, int width, long value)
-    {
-        target[width] = target.TryGetValue(width, out var current) ? current + value : value;
-    }
+        AddTrace(context, indent, $"Получены числа с дополнительным разрядом для {label}.");
+        AddTrace(context, indent, $"a1 = {highA}, a2 = {lowA}; b1 = {highB}, b2 = {lowB}.");
 
-    private static int GetBitLength(BigInteger value)
-    {
-        if (value.IsZero)
+        BigInteger lowProduct;
+        if (digits > 1)
         {
-            return 1;
+            AddTrace(context, indent, $"Вычислим младшее произведение {lowA} * {lowB}:");
+            lowProduct = MultiplyRecursive(lowA, lowB, digits, $"{lowA} * {lowB}", indent + 1, context);
+        }
+        else
+        {
+            lowProduct = lowA * lowB;
         }
 
-        var bytes = value.ToByteArray(isUnsigned: true, isBigEndian: true);
-        var first = bytes[0];
-        var leading = 0;
-        while ((first & 0x80) == 0)
+        var cross = highA * lowB + lowA * highB;
+        var result = highA * highB * powerSquared + cross * power + lowProduct;
+        AddTrace(context, indent, $"{label} = {highA} * {highB} * 10^{2 * digits} + ({highA} * {lowB} + {lowA} * {highB}) * 10^{digits} + {lowA} * {lowB} = {result}");
+        return result;
+    }
+
+    private static void AddTrace(CalculationContext context, int indent, string text)
+    {
+        if (context.CaptureTrace)
         {
-            leading++;
-            first <<= 1;
+            context.Trace.Add(new MultiplicationTraceStep(indent, text));
+        }
+    }
+
+    private static void Add(Dictionary<int, long> counters, int digits, long value)
+    {
+        if (value == 0)
+        {
+            return;
         }
 
-        return bytes.Length * 8 - leading;
+        counters[digits] = counters.TryGetValue(digits, out var current) ? current + value : value;
     }
 
     private static int NextPowerOfTwo(int value)
@@ -122,22 +164,36 @@ public sealed class FastMultiplication
         {
             result *= 2;
         }
+
         return result;
     }
 
-    private static void Validate(string value)
+    private static void Validate(string value, string parameterName)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            throw new ArgumentException("Число не должно быть пустым.");
+            throw new ArgumentException("Число не должно быть пустым.", parameterName);
         }
 
         foreach (var character in value)
         {
             if (character is < '0' or > '9')
             {
-                throw new ArgumentException("Допускаются только неотрицательные целые числа.");
+                throw new ArgumentException("Допускаются только неотрицательные целые числа.", parameterName);
             }
         }
+    }
+
+    private sealed class CalculationContext
+    {
+        public CalculationContext(bool captureTrace)
+        {
+            CaptureTrace = captureTrace;
+        }
+
+        public bool CaptureTrace { get; }
+        public List<MultiplicationTraceStep> Trace { get; } = new();
+        public FastMultiplicationStatistics Statistics { get; } = new();
+        public int NextGroupNumber { get; set; } = 1;
     }
 }
