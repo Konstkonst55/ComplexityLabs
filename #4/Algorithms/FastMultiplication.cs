@@ -57,11 +57,11 @@ public sealed class FastMultiplication
 
         if (digits >= 4)
         {
-            Add(context.Statistics.AdditionsWithOverflow, digits * 2, overflowCount);
+            Add(context.Statistics.AdditionsWithOverflow, digits * 2, overflowCount > 0 ? 1 : 0);
         }
         else if (digits == 2)
         {
-            Add(context.Statistics.AdditionsWithOverflow, 4, overflowCount);
+            Add(context.Statistics.AdditionsWithOverflow, 4, overflowCount > 0 ? 1 : 0);
             Add(context.Statistics.AdditionsWithOverflow, 2, overflowCount * 2L);
         }
 
@@ -131,6 +131,11 @@ public sealed class FastMultiplication
         else
         {
             lowProduct = lowA * lowB;
+        }
+
+        if (digits == 1 && highA != 0 && highB != 0)
+        {
+            Add(context.Statistics.AdditionsWithOverflow, 2, 1);
         }
 
         var cross = highA * lowB + lowA * highB;
