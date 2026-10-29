@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "#4", "#4\#4.csproj", "{E23E
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TableBuilder", "TableBuilder\TableBuilder.csproj", "{8ED6E5BD-30B0-44FC-A003-A99C3768D492}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "#6", "#6\#6.csproj", "{A7A36B5F-DD23-4F39-8B95-315D693F985E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{8ED6E5BD-30B0-44FC-A003-A99C3768D492}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8ED6E5BD-30B0-44FC-A003-A99C3768D492}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8ED6E5BD-30B0-44FC-A003-A99C3768D492}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7A36B5F-DD23-4F39-8B95-315D693F985E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7A36B5F-DD23-4F39-8B95-315D693F985E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7A36B5F-DD23-4F39-8B95-315D693F985E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7A36B5F-DD23-4F39-8B95-315D693F985E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
