@@ -2,7 +2,7 @@ namespace _5.MatrixChain;
 
 public sealed class MatrixChainSolver
 {
-    public MatrixChainResult Solve(IReadOnlyList<int> dimensions)
+    public MatrixChainResult Solve(IReadOnlyList<int> dimensions, bool includeDetailedTrace = true)
     {
         ArgumentNullException.ThrowIfNull(dimensions);
         if (dimensions.Count < 2)
@@ -28,22 +28,28 @@ public sealed class MatrixChainSolver
             costs[i, i] = 0;
         }
 
-        trace.Add(new MatrixChainTraceStep(
-            traceNumber++,
-            $"Главная диагональ: f(i, i) = 0 для всех i = 1..{n}"));
-
-        for (var t = 1; t < n; t++)
+        if (includeDetailedTrace)
         {
             trace.Add(new MatrixChainTraceStep(
                 traceNumber++,
-                $"Вычисление для длины подцепочки t = {t}"));
+                $"Главная диагональ: f(i, i) = 0 для всех i = 1..{n}"));
+        }
+
+        for (var t = 1; t < n; t++)
+        {
+            if (includeDetailedTrace)
+            {
+                trace.Add(new MatrixChainTraceStep(
+                    traceNumber++,
+                    $"Вычисление для длины подцепочки t = {t}"));
+            }
 
             for (var start = 1; start <= n - t; start++)
             {
                 var end = start + t;
                 var minimum = long.MaxValue;
                 var bestSplit = -1;
-                var expressions = new List<string>();
+                var expressions = includeDetailedTrace ? new List<string>() : null;
 
                 for (var split = start; split < end; split++)
                 {
@@ -53,9 +59,12 @@ public sealed class MatrixChainSolver
                         (long)copiedDimensions[start - 1] * copiedDimensions[split] * copiedDimensions[end]);
                     var candidate = checked(leftCost + rightCost + multiplicationCost);
                     candidateEvaluations++;
-                    expressions.Add(
-                        $"f({start},{split}) + f({split + 1},{end}) + " +
-                        $"{copiedDimensions[start - 1]}*{copiedDimensions[split]}*{copiedDimensions[end]} = {candidate}");
+                    if (expressions is not null)
+                    {
+                        expressions.Add(
+                            $"f({start},{split}) + f({split + 1},{end}) + " +
+                            $"{copiedDimensions[start - 1]}*{copiedDimensions[split]}*{copiedDimensions[end]} = {candidate}");
+                    }
 
                     if (candidate < minimum)
                     {
@@ -66,9 +75,12 @@ public sealed class MatrixChainSolver
 
                 costs[start, end] = minimum;
                 splits[start, end] = bestSplit;
-                trace.Add(new MatrixChainTraceStep(
-                    traceNumber++,
-                    $"f({start},{end}) = min({string.Join("; ", expressions)}) = {minimum} (минимум при j = {bestSplit})"));
+                if (expressions is not null)
+                {
+                    trace.Add(new MatrixChainTraceStep(
+                        traceNumber++,
+                        $"f({start},{end}) = min({string.Join("; ", expressions)}) = {minimum} (минимум при j = {bestSplit})"));
+                }
             }
         }
 
